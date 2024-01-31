@@ -1,11 +1,16 @@
+use std::time::Duration;
+
 use anyhow::Result;
 use futures::Stream;
 use ratatui::style::Color;
-use std::time::Duration;
 use tokio::time::{interval, sleep};
-use trui::*;
+use trui::{
+    block, defer, stream, v_stack, App, BorderKind, Clickable, HoverStyleable, PressedStyleable,
+    StreamMessage, Styleable, ToWrappedText,
+};
 
 pub fn words_stream(input: &str) -> impl Stream<Item = String> + Send {
+    #[allow(clippy::needless_collect)]
     let words = input
         .split_whitespace()
         .map(String::from)

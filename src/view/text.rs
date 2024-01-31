@@ -1,9 +1,10 @@
 use std::borrow::Cow;
 
-use super::{common::Styleable, Cx, View, ViewMarker};
-use crate::widget::{self, ChangeFlags, StyleableWidget};
 use ratatui::style::{Color, Modifier, Style};
 use unicode_segmentation::UnicodeSegmentation;
+
+use super::{common::Styleable, Cx, View, ViewMarker};
+use crate::widget::{self, ChangeFlags, StyleableWidget};
 
 impl From<&'static str> for Text {
     fn from(text: &'static str) -> Self {

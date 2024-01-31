@@ -1,10 +1,11 @@
+use ratatui::{layout::Rect, style::Style, symbols};
+use taffy::tree::NodeId;
+
 use super::{
     core::{update_layout_node, PaintCx},
     ChangeFlags, Event, EventCx, Pod, StyleableWidget, Widget,
 };
 use crate::view::{BorderStyles, Borders};
-use ratatui::{layout::Rect, style::Style, symbols};
-use taffy::tree::NodeId;
 
 pub(crate) fn render_border(cx: &mut PaintCx, r: Rect, border_styles: &BorderStyles, style: Style) {
     use Borders as B; // unfortunately not possible to wildcard import since it's not an enum...
@@ -139,41 +140,41 @@ impl Block {
     }
 
     pub(crate) fn set_border_style(&mut self, border_style: &BorderStyles) -> ChangeFlags {
-        if &self.border_styles != border_style {
+        if &self.border_styles == border_style {
+            ChangeFlags::empty()
+        } else {
             self.border_styles = border_style.clone();
             // TODO more sophisticated check for needed ChangeFlags (specifically layout)
             ChangeFlags::LAYOUT | ChangeFlags::PAINT
-        } else {
-            ChangeFlags::empty()
         }
     }
 
     pub(crate) fn set_fill_with_bg(&mut self, fill_with_bg: bool) -> ChangeFlags {
-        if self.fill_with_bg != fill_with_bg {
+        if self.fill_with_bg == fill_with_bg {
+            ChangeFlags::empty()
+        } else {
             self.fill_with_bg = fill_with_bg;
             ChangeFlags::PAINT
-        } else {
-            ChangeFlags::empty()
         }
     }
 
     pub(crate) fn set_inherit_style(&mut self, inherit: bool) -> ChangeFlags {
-        if self.inherit_style != inherit {
+        if self.inherit_style == inherit {
+            ChangeFlags::empty()
+        } else {
             self.inherit_style = inherit;
             ChangeFlags::PAINT
-        } else {
-            ChangeFlags::empty()
         }
     }
 }
 
 impl StyleableWidget for Block {
     fn set_style(&mut self, style: Style) -> ChangeFlags {
-        if style != self.style {
+        if style == self.style {
+            ChangeFlags::empty()
+        } else {
             self.style = style;
             ChangeFlags::PAINT
-        } else {
-            ChangeFlags::empty()
         }
     }
 }
@@ -197,22 +198,22 @@ impl Widget for Block {
 
         render_border(cx, cx.rect(), &self.border_styles, style);
 
-        self.content.paint(cx, cx.rect())
+        self.content.paint(cx, cx.rect());
     }
 
     fn layout(&mut self, cx: &mut super::LayoutCx, prev: NodeId) -> NodeId {
         let content = self.content.layout(cx);
-        if !prev.is_null() {
-            update_layout_node(prev, cx.taffy, &[content], &self.layout_style);
-            prev
-        } else {
+        if prev.is_null() {
             cx.taffy
                 .new_with_children(self.layout_style.clone(), &[content])
                 .unwrap()
+        } else {
+            update_layout_node(prev, cx.taffy, &[content], &self.layout_style);
+            prev
         }
     }
 
     fn event(&mut self, cx: &mut EventCx, event: &Event) {
-        self.content.event(cx, event)
+        self.content.event(cx, event);
     }
 }

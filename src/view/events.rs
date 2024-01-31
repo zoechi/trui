@@ -1,11 +1,13 @@
-use super::{Cx, PendingTask, Styleable, View, ViewMarker};
-use crate::widget::{self, CatchMouseButton, ChangeFlags, StyleableWidget, Widget};
+use std::{marker::PhantomData, sync::Arc};
+
 use futures_task::Waker;
 use futures_util::{Future, Stream, StreamExt};
 use ratatui::style::{Color, Style};
-use std::{marker::PhantomData, sync::Arc};
 use tokio::{runtime::Runtime, sync::mpsc::Receiver, task::JoinHandle};
 use xilem_core::{AsyncWake, Id, MessageResult};
+
+use super::{Cx, PendingTask, Styleable, View, ViewMarker};
+use crate::widget::{self, CatchMouseButton, ChangeFlags, StyleableWidget, Widget};
 
 pub trait EventHandler<T, A = (), E = ()>: Send + Sync {
     type State: Send + Sync;
@@ -130,6 +132,7 @@ impl<T, A, E: Clone + 'static, E1: EventHandler<T, A, E>, E2: EventHandler<T, A,
     }
 }
 
+#[allow(clippy::exhaustive_enums)]
 pub enum StreamMessage<E> {
     Begin(E),
     Update(E),
@@ -181,6 +184,7 @@ impl<E: Send + 'static> StreamEventHandlerState<E> {
         self.join_handle = Some(join_handle);
     }
 
+    #[allow(clippy::unwrap_in_result)]
     fn poll(&mut self) -> Option<StreamMessage<E>> {
         match self.chan.as_mut().unwrap().try_recv() {
             Ok(Some(message)) if self.started => {
@@ -220,13 +224,13 @@ where
     fn build(&self, cx: &mut Cx) -> (Id, Self::State) {
         cx.with_new_id(|cx| {
             let waker = cx.waker();
-            StreamEventHandlerState::new(waker, cx.rt.clone())
+            StreamEventHandlerState::new(waker, Arc::clone(&cx.rt))
         })
     }
 
     fn rebuild(&self, cx: &mut Cx, id: &Id, state: &mut Self::State) -> ChangeFlags {
         if state.is_streaming {
-            cx.add_pending_async(*id)
+            cx.add_pending_async(*id);
         }
         ChangeFlags::empty()
     }
@@ -299,12 +303,12 @@ where
     type State = (Option<PendingTask<FO>>, Arc<Runtime>, Waker);
 
     fn build(&self, cx: &mut Cx) -> (Id, Self::State) {
-        cx.with_new_id(|cx| (None, cx.rt.clone(), cx.waker()))
+        cx.with_new_id(|cx| (None, Arc::clone(&cx.rt), cx.waker()))
     }
 
     fn rebuild(&self, cx: &mut Cx, id: &Id, state: &mut Self::State) -> ChangeFlags {
         if state.0.is_some() {
-            cx.add_pending_async(*id)
+            cx.add_pending_async(*id);
         }
         ChangeFlags::empty()
     }
@@ -382,6 +386,7 @@ pub struct OnMouse<V, EH> {
 }
 
 impl<V, EH> OnMouse<V, EH> {
+    #[must_use]
     pub fn catch_event(mut self, buttons: CatchMouseButton) -> Self {
         self.catch_event = buttons;
         self
@@ -708,7 +713,7 @@ pub trait PressedStyleable: Sized {
 ///  - `$plus` - optional `+` which adds the event trait (which is implemented on `$ty`) bound to `$el`
 ///
 /// # Examples
-/// 
+///
 /// ```ignore
 /// impl_event_views!((OnClick), V, (, EH), (V, EH) +);
 /// ```

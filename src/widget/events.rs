@@ -1,6 +1,6 @@
-use bitflags::bitflags;
 use std::marker::PhantomData;
 
+use bitflags::bitflags;
 use crossterm::event::{MouseButton, MouseEventKind};
 use ratatui::style::Style;
 use taffy::tree::NodeId;
@@ -10,7 +10,7 @@ use super::{
     ChangeFlags, Event, EventCx, LayoutCx, Message, Pod, Widget,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 /// A message representing a mouse event.
 pub struct MouseEvent {
     pub over_element: bool,
@@ -23,7 +23,7 @@ pub struct MouseEvent {
 
 impl MouseEvent {
     fn new(event: crossterm::event::MouseEvent, over_element: bool, is_active: bool) -> Self {
-        MouseEvent {
+        Self {
             over_element,
             is_active,
             kind: event.kind,
@@ -53,7 +53,7 @@ pub struct OnMouse<E> {
 
 impl<E: Widget> OnMouse<E> {
     pub fn new(element: E, id_path: &IdPath, catch_event: CatchMouseButton) -> Self {
-        OnMouse {
+        Self {
             element: Pod::new(element),
             id_path: id_path.clone(),
             phantom: PhantomData,
@@ -119,7 +119,9 @@ impl<E: Widget> Widget for OnMouse<E> {
                 // We can't be really sure, whether the mouse button was released in the outside the focus, so be conservative here...
                 cx.set_active(false);
             }
-            _ => (),
+            _ => {
+                tracing::info!("Unhandled Event: {event:?}");
+            }
         }
     }
 }
@@ -128,8 +130,7 @@ impl<E: Widget + StyleableWidget> StyleableWidget for OnMouse<E> {
     fn set_style(&mut self, style: ratatui::style::Style) -> ChangeFlags {
         self.element
             .downcast_mut::<E>()
-            .map(|e| e.set_style(style))
-            .unwrap_or(ChangeFlags::all())
+            .map_or(ChangeFlags::all(), |e| e.set_style(style))
     }
 }
 
@@ -187,8 +188,7 @@ impl<E: Widget + StyleableWidget> StyleableWidget for OnClick<E> {
     fn set_style(&mut self, style: ratatui::style::Style) -> ChangeFlags {
         self.element
             .downcast_mut::<E>()
-            .map(|e| e.set_style(style))
-            .unwrap_or(ChangeFlags::all())
+            .map_or(ChangeFlags::all(), |e| e.set_style(style))
     }
 }
 
@@ -330,8 +330,7 @@ impl<E: Widget + StyleableWidget> StyleableWidget for StyleOnPressed<E> {
     fn set_style(&mut self, style: ratatui::style::Style) -> ChangeFlags {
         self.element
             .downcast_mut::<E>()
-            .map(|e| e.set_style(style))
-            .unwrap_or(ChangeFlags::all())
+            .map_or(ChangeFlags::all(), |e| e.set_style(style))
     }
 }
 

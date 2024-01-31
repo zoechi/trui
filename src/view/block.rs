@@ -1,8 +1,8 @@
-use crate::widget::{self, ChangeFlags, StyleableWidget};
-
-use super::{BorderKind, BorderStyle, BorderStyles, Borders, Cx, Styleable, View, ViewMarker};
 use ratatui::style::{Color, Style};
 use xilem_core::MessageResult;
+
+use super::{BorderKind, BorderStyle, BorderStyles, Borders, Cx, Styleable, View, ViewMarker};
+use crate::widget::{self, ChangeFlags, StyleableWidget};
 
 pub struct Block<V> {
     content: V,
@@ -116,22 +116,26 @@ impl<V> Styleable for Block<V> {
 }
 
 impl<V> Block<V> {
+    #[must_use]
     pub fn inherit_style(mut self, inherit: bool) -> Self {
         self.inherit_style = inherit;
         self
     }
 
+    #[must_use]
     pub fn fill_with_bg(mut self, fill: bool) -> Self {
         self.fill_with_bg = fill;
         self
     }
 
+    #[must_use]
     pub fn with_borders(mut self, style: impl Into<BorderStyle>) -> Self {
         self.border_styles.0.push(style.into());
         self
     }
 
     /// reverse previously applied borders
+    #[must_use]
     pub fn without_borders(mut self, borders: Borders) -> Self {
         self.border_styles.0.push(BorderStyle {
             add_borders: Borders::NONE,
@@ -146,7 +150,7 @@ impl<V> Block<V> {
 pub fn block<V>(content: V) -> Block<V> {
     Block {
         content,
-        border_styles: Default::default(),
+        border_styles: BorderStyles::default(),
         style: Style::default(),
         inherit_style: false,
         fill_with_bg: true,
@@ -161,7 +165,7 @@ pub fn bordered_block<V>(content: V) -> Block<V> {
 // TODO maybe macros may help reducing the boilerplate below...
 
 impl From<()> for BorderStyle {
-    fn from(_: ()) -> Self {
+    fn from((): ()) -> Self {
         Borders::ALL.into()
     }
 }

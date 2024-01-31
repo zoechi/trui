@@ -9,9 +9,9 @@ use xilem_core::{Id, MessageResult};
 
 use crate::{widget::ChangeFlags, Cx, View, ViewMarker};
 
-/// This Handle is a workaround to erase the lifetime of &mut T,
+/// This Handle is a workaround to erase the lifetime of `&mut T`,
 /// it can only be constructed in contexts,
-/// where it is actually safe to use (such as UseState)
+/// where it is actually safe to use (such as `UseState`)
 pub struct Handle<T>(*mut T);
 
 impl<T> Deref for Handle<T> {
@@ -28,7 +28,7 @@ impl<T> DerefMut for Handle<T> {
     }
 }
 
-/// An implementation of the "use_state" pattern familiar in reactive UI.
+/// An implementation of the "use state" pattern familiar in reactive UI.
 ///
 /// This may not be the final form. In this version, the parent app data
 /// is `Rc<T>`, and the child is `(Rc<T>, S)` where S is the local state.
@@ -53,8 +53,8 @@ pub struct UseStateState<T, A, S, V: View<(Handle<T>, S), A>> {
 impl<T, A, S, V, FInit: Fn() -> S, F: Fn(&mut S) -> V> UseState<T, A, S, V, FInit, F> {
     #[allow(unused)]
     pub fn new(f_init: FInit, f: F) -> Self {
-        let phantom = Default::default();
-        UseState { f_init, f, phantom }
+        let phantom = PhantomData;
+        Self { f_init, f, phantom }
     }
 }
 
@@ -232,7 +232,7 @@ impl<
 
     fn build(&self, cx: &mut Cx) -> (Id, Self::State, Self::Element) {
         let mut local_state = (self.init)();
-        let handle_state = HandleState(self.view.clone());
+        let handle_state = HandleState(Arc::clone(&self.view));
         let view = (self.view_factory)(handle_state, &mut local_state);
         let (id, vo_state, element) = view.build(cx);
 
@@ -247,7 +247,7 @@ impl<
         (local_state, state_view, state_view_state): &mut Self::State,
         element: &mut Self::Element,
     ) -> ChangeFlags {
-        let handle_state = HandleState(self.view.clone());
+        let handle_state = HandleState(Arc::clone(&self.view));
         let view = (self.view_factory)(handle_state, local_state.as_mut().unwrap());
         let changeflags = view.rebuild(cx, state_view, id, state_view_state, element);
         *state_view = view;

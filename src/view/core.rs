@@ -5,9 +5,9 @@ use std::{
 
 use futures_task::{ArcWake, Waker};
 use tokio::runtime::Runtime;
+use xilem_core::{Id, IdPath};
 
 use crate::widget::{AnyWidget, ChangeFlags, Pod, Widget};
-use xilem_core::{Id, IdPath};
 
 xilem_core::generate_view_trait!(View, ViewMarker, Widget, Cx, ChangeFlags; (Send + Sync), (Send));
 xilem_core::generate_viewsequence_trait! {ViewSequence, View, ViewMarker, Widget, Cx, ChangeFlags, Pod; (Send + Sync), (Send)}
@@ -42,10 +42,12 @@ impl Cx {
         self.id_path.pop();
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.id_path.is_empty()
     }
 
+    #[must_use]
     pub fn id_path(&self) -> &IdPath {
         &self.id_path
     }
@@ -71,6 +73,7 @@ impl Cx {
         (id, result)
     }
 
+    #[must_use]
     pub fn waker(&self) -> Waker {
         futures_task::waker(Arc::new(MyWaker {
             id_path: self.id_path.clone(),

@@ -22,7 +22,7 @@ pub fn button<T>(
 }
 
 fn rainbow(normalized_value: f32) -> Color {
-    let hue = (normalized_value.min(1.0).max(0.0) * 360.0) as u32;
+    let hue = (normalized_value.clamp(0.0, 1.0) * 360.0) as u32;
     let chroma = 255.0;
     let x = (1.0 - ((hue as f32 / 60.0) % 2.0 - 1.0).abs()) * chroma;
 
@@ -44,7 +44,7 @@ pub fn rainbow_blocks<T: 'static>(
 ) -> Box<dyn AnyView<T>> {
     let mut view = content.boxed();
     for i in 0..count {
-        let color = rainbow((i as f32 / (count - 1) as f32 + 0.001).max(0.0).min(1.0));
+        let color = rainbow((i as f32 / (count - 1) as f32 + 0.001).clamp(0.0, 1.0));
         view = block(view)
             .with_borders(BorderKind::Rounded)
             .fg(color)
@@ -98,11 +98,11 @@ fn main() -> Result<()> {
                         let count = *count;
                         let v: Box<dyn AnyView<_>> = if count <= 10 {
                             Box::new(format!(
-                                "Nothing interesting here to see, count is low at {}",
-                                count
+                                "Nothing interesting here to see, count is low at {count}"
+
                             ))
                         } else if count > 10 && count < 42 {
-                            Box::new(format!("Count is bigger than 10 ({})", count).fg(Color::Gray))
+                            Box::new(format!("Count is bigger than 10 ({count})").fg(Color::Gray))
                         } else if count == 42 {
                             Box::new(
                                 block("You have found the sense of life!".fg(Color::Green))
@@ -110,9 +110,9 @@ fn main() -> Result<()> {
                             )
                         } else {
                             let color = Color::Rgb(
-                                255usize.saturating_sub(count * 2) as u8,
-                                255usize.saturating_sub(count * 2) as u8,
-                                255usize.saturating_sub(count * 2) as u8,
+                                255_usize.saturating_sub(count * 2) as u8,
+                                255_usize.saturating_sub(count * 2) as u8,
+                                255_usize.saturating_sub(count * 2) as u8,
                             );
                             Box::new(
                                 block("Everything's downhill from here on...".fg(color)).fg(color),

@@ -30,6 +30,7 @@ bitflags! {
 }
 
 #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct BorderStyle {
     pub add_borders: Borders,
     pub sub_borders: Borders,
@@ -42,6 +43,7 @@ pub struct BorderStyle {
 pub struct BorderStyles(pub(crate) Vec<BorderStyle>);
 
 impl BorderStyles {
+    #[must_use]
     pub fn has_borders(&self, borders: Borders) -> bool {
         let enabled_borders = self.0.iter().fold(Borders::default(), |b, styles| {
             (b & styles.sub_borders.complement()) | styles.add_borders
@@ -49,15 +51,13 @@ impl BorderStyles {
         enabled_borders.contains(borders)
     }
 
-    /// if all of the borders are set in one style "frame" (i.e. with widget.with_borders(<borders>)), it returns the defined border kind
+    /// if all of the borders are set in one style "frame" (i.e. with
+    /// `widget.with_borders(<borders>)`), it returns the defined border kind
+    #[must_use]
     pub fn border_kind(&self, borders: Borders) -> BorderKind {
         self.0.iter().fold(BorderKind::default(), |kind, style| {
             if style.add_borders.contains(borders) {
-                if let Some(new_kind) = style.kind {
-                    new_kind
-                } else {
-                    kind
-                }
+                style.kind.unwrap_or(kind)
             } else if style.sub_borders.contains(borders) {
                 BorderKind::default()
             } else {
@@ -66,6 +66,7 @@ impl BorderStyles {
         })
     }
 
+    #[must_use]
     pub fn style(&self, borders: Borders) -> Style {
         let mut style = Style::default();
         for border_style in self.0.iter().rev() {
@@ -79,6 +80,7 @@ impl BorderStyles {
         style
     }
 
+    #[must_use]
     pub fn symbols(&self, borders: Borders) -> symbols::line::Set {
         match self.border_kind(borders) {
             BorderKind::Straight => symbols::line::NORMAL,
@@ -91,6 +93,7 @@ impl BorderStyles {
 
 #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
 #[repr(u8)]
+#[non_exhaustive]
 pub enum BorderKind {
     #[default]
     Straight = 1,

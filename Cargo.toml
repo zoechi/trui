@@ -1,17 +1,21 @@
 [package]
 name = "trui"
-version = "0.1.0"
+description = "Textual Reactive User Interface - implements the xilem architecture"
 edition = "2021"
+categories = ["GUI", "Command-line interface"]
+keywords = ["xilem", "tui", "ui", "terminal"]
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/Philipp-M/trui"
+version = "0.1.0"
 
 [dependencies]
 # xilem_core = { path = "../xilem/xilem/crates/xilem_core" }
 xilem_core = { git = "https://github.com/Philipp-M/xilem.git", branch = "personal" }
 crossterm = "0.27"
-rand = "0.8.5"
 taffy = { git = "https://github.com/Philipp-M/taffy.git", branch = "null-node" }
 futures-task = "0.3"
 futures-util = "0.3"
-futures = "0.3"
 tokio = { version = "1.35", features = ["full"] }
 anyhow = "1.0"
 tracing = "0.1.40"
@@ -22,3 +26,7 @@ ratatui = "0.25"
 bitflags = "2.4.2"
 unicode-segmentation = "1.10.1"
 unicode-width = "0.1.11"
+
+[dev-dependencies]
+futures = "0.3"
+rand = "0.8.5"

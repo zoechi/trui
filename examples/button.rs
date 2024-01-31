@@ -1,6 +1,9 @@
 use anyhow::Result;
 use ratatui::style::{Color, Style};
-use trui::*;
+use trui::{
+    block, v_stack, App, BorderKind, Clickable, EventHandler, HoverStyleable, Hoverable,
+    IntoBoxedView, PressedStyleable, Styleable, View,
+};
 
 pub fn button<T: 'static>(
     content: impl IntoBoxedView<T>,
@@ -21,7 +24,7 @@ fn main() -> Result<()> {
                 (|count: &mut i32| *count += 1, |count: &mut i32| *count += 3),
             ),
             button("Click me to decrement".fg(Color::Red), |count: &mut i32| {
-                *count -= 1
+                *count -= 1;
             }),
         ))
     })

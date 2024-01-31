@@ -1,14 +1,15 @@
+use std::{any::Any, io::Stdout, ops::DerefMut};
+
 use bitflags::bitflags;
 pub use crossterm::event::MouseEvent;
 use crossterm::event::{KeyEvent, MouseEventKind};
 use ratatui::{backend::CrosstermBackend, layout::Rect, Terminal};
-use std::{any::Any, io::Stdout, ops::DerefMut};
 use taffy::{tree::NodeId, TaffyTree, TraversePartialTree};
 use xilem_core::{message, Id};
 
 message!(Send);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Event {
     /// Only sent once at the start of the application
     Start,
@@ -152,7 +153,7 @@ impl<'a, 'b> EventCx<'a, 'b> {
     }
 }
 
-pub fn rect_contains(rect: &Rect, pos: Point) -> bool {
+pub fn rect_contains(rect: Rect, pos: Point) -> bool {
     pos.x >= rect.x
         && pos.y >= rect.y
         && pos.x < (rect.x + rect.width)
@@ -160,6 +161,7 @@ pub fn rect_contains(rect: &Rect, pos: Point) -> bool {
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
+#[allow(clippy::exhaustive_structs)]
 pub struct Point {
     pub x: u16,
     pub y: u16,
@@ -248,16 +250,16 @@ impl WidgetState {
         WidgetState {
             // id,
             flags: PodFlags::INIT_FLAGS,
-            rect: Default::default(),
+            rect: Rect::default(),
             layout_node: NodeId::null(),
         }
     }
 
     pub(crate) fn request(&mut self, flags: PodFlags) {
-        self.flags |= flags
+        self.flags |= flags;
     }
 
-    pub(crate) fn merge_up(&mut self, child_state: &mut WidgetState) {
+    pub(crate) fn merge_up(&mut self, child_state: &WidgetState) {
         self.flags |= child_state.flags.upwards();
     }
 }
@@ -292,7 +294,7 @@ impl Pod {
         (*self.widget).as_any_mut().downcast_mut()
     }
 
-    /// Sets the requested flags on this pod and returns the ChangeFlags the owner of this Pod should set.
+    /// Sets the requested flags on this pod and returns the `ChangeFlags` the owner of this Pod should set.
     pub fn mark(&mut self, flags: ChangeFlags) -> ChangeFlags {
         self.state
             .request(PodFlags::from_bits_truncate(flags.bits() as _));
@@ -310,7 +312,7 @@ impl Pod {
         self.state.flags.remove(PodFlags::REQUEST_LAYOUT);
         // TODO currently this is only relevant here, but this may change in the future...
         self.state.flags.remove(PodFlags::TREE_CHANGED);
-        cx.widget_state.merge_up(&mut self.state);
+        cx.widget_state.merge_up(&self.state);
         self.state.layout_node
     }
 
@@ -344,7 +346,7 @@ impl Pod {
     // Return true if hot state has changed
     fn set_hot_state(widget_state: &mut WidgetState, mouse_pos: Point) -> bool {
         let had_hot = widget_state.flags.contains(PodFlags::IS_HOT);
-        let is_hot = rect_contains(&widget_state.rect, mouse_pos);
+        let is_hot = rect_contains(widget_state.rect, mouse_pos);
         widget_state.flags.set(PodFlags::IS_HOT, is_hot);
         if had_hot != is_hot {
             // TODO
@@ -421,7 +423,7 @@ impl Pod {
                 PodFlags::HAS_ACTIVE,
                 self.state.flags.contains(PodFlags::IS_ACTIVE),
             );
-            cx.widget_state.merge_up(&mut self.state);
+            cx.widget_state.merge_up(&self.state);
         }
     }
 }
@@ -458,7 +460,7 @@ impl<W: Widget> AnyWidget for W {
 
 impl Widget for Box<dyn AnyWidget> {
     fn paint(&mut self, cx: &mut PaintCx) {
-        self.deref_mut().paint(cx)
+        self.deref_mut().paint(cx);
     }
 
     fn layout(&mut self, cx: &mut LayoutCx, prev: NodeId) -> NodeId {
@@ -466,7 +468,7 @@ impl Widget for Box<dyn AnyWidget> {
     }
 
     fn event(&mut self, cx: &mut EventCx, event: &Event) {
-        self.deref_mut().event(cx, event)
+        self.deref_mut().event(cx, event);
     }
 }
 
@@ -494,6 +496,7 @@ pub(crate) fn update_layout_node(
         return;
     }
     if !all_children_equal {
+        #[allow(clippy::needless_collect)]
         for n in taffy
             .children(node)
             .unwrap()

@@ -4,9 +4,8 @@ use futures_task::{Context, Poll, Waker};
 use tokio::task::{JoinHandle, Unconstrained};
 use xilem_core::{AsyncWake, Id, MessageResult};
 
-use crate::widget::{AnyWidget, ChangeFlags};
-
 use super::{Cx, View, ViewMarker};
+use crate::widget::{AnyWidget, ChangeFlags};
 
 pub struct PendingTask<T> {
     waker: Waker,
@@ -15,6 +14,7 @@ pub struct PendingTask<T> {
 }
 
 impl<T> PendingTask<T> {
+    #[must_use]
     pub fn new(waker: Waker, task: Unconstrained<JoinHandle<T>>) -> Self {
         PendingTask {
             waker,
@@ -39,6 +39,7 @@ impl<T> PendingTask<T> {
     }
 }
 
+#[non_exhaustive]
 pub enum ViewState<IS, S> {
     Init(IS),
     Resolved(S),

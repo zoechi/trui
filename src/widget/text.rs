@@ -29,11 +29,11 @@ impl Text {
 
 impl StyleableWidget for Text {
     fn set_style(&mut self, style: Style) -> ChangeFlags {
-        if style != self.style {
+        if style == self.style {
+            ChangeFlags::empty()
+        } else {
             self.style = style;
             ChangeFlags::PAINT
-        } else {
-            ChangeFlags::empty()
         }
     }
 }
@@ -66,11 +66,11 @@ impl Widget for Text {
             },
             ..Default::default()
         };
-        if !prev.is_null() {
+        if prev.is_null() {
+            cx.taffy.new_leaf(style).unwrap()
+        } else {
             update_layout_node(prev, cx.taffy, &[], &style);
             prev
-        } else {
-            cx.taffy.new_leaf(style).unwrap()
         }
     }
 
@@ -104,12 +104,12 @@ impl WrappedText {
     }
 
     pub fn set_words(&mut self, words: &Vec<(String, Style)>) -> ChangeFlags {
-        if &self.words != words {
+        if &self.words == words {
+            ChangeFlags::empty()
+        } else {
             self.words = words.clone();
             self.words_need_layout = true;
             ChangeFlags::PAINT | ChangeFlags::LAYOUT
-        } else {
-            ChangeFlags::empty()
         }
     }
 }
@@ -160,13 +160,13 @@ impl Widget for WrappedText {
                 })
                 .collect();
         }
-        if !prev.is_null() {
-            update_layout_node(prev, cx.taffy, &self.words_layout, &self.base_layout);
-            prev
-        } else {
+        if prev.is_null() {
             cx.taffy
                 .new_with_children(self.base_layout.clone(), &self.words_layout)
                 .unwrap()
+        } else {
+            update_layout_node(prev, cx.taffy, &self.words_layout, &self.base_layout);
+            prev
         }
     }
 

@@ -1,7 +1,11 @@
-use crate::{
-    view::{Cx, View},
-    widget::{CxState, Event, EventCx, LayoutCx, Message, PaintCx, Pod, PodFlags, WidgetState},
+use std::{
+    collections::HashSet,
+    io::{stdout, Stdout, Write},
+    path::PathBuf,
+    sync::Arc,
+    time::Duration,
 };
+
 use anyhow::Result;
 use crossterm::{
     cursor,
@@ -16,17 +20,15 @@ use crossterm::{
     },
 };
 use ratatui::{backend::CrosstermBackend, layout::Rect, Terminal};
-use std::{
-    collections::HashSet,
-    io::{stdout, Stdout, Write},
-    path::PathBuf,
-    sync::Arc,
-    time::Duration,
-};
 use taffy::{style::AvailableSpace, TaffyTree};
 use tokio::runtime::Runtime;
 use tracing_subscriber::{fmt::writer::MakeWriterExt, layer::SubscriberExt, Registry};
 use xilem_core::{AsyncWake, Id, IdPath, MessageResult};
+
+use crate::{
+    view::{Cx, View},
+    widget::{CxState, Event, EventCx, LayoutCx, Message, PaintCx, Pod, PodFlags, WidgetState},
+};
 
 // TODO less hardcoding and cross-platform support
 fn setup_logging(log_level: tracing::Level) -> Result<tracing_appender::non_blocking::WorkerGuard> {
@@ -64,7 +66,7 @@ const RENDER_DELAY: Duration = Duration::from_millis(5);
 ///
 /// It contains no information about how to interact with the User (browser, native, terminal).
 /// It is created by [`App`] and kept in a separate task for updating the apps contents.
-/// The App can send [AppMessage] to inform the the AppTask about an user interaction.
+/// The App can send [`AppMessage`] to inform the the [`AppTask`] about an user interaction.
 struct AppTask<T, V: View<T>, F: FnMut(&mut T) -> V> {
     req_chan: tokio::sync::mpsc::Receiver<AppMessage>,
     response_chan: tokio::sync::mpsc::Sender<RenderResponse<V, V::State>>,
@@ -97,9 +99,9 @@ struct RenderResponse<V, S> {
 
 /// The state of the  [`AppTask`].
 ///
-/// While the [`App`] follows a strict order of UIEvents -> Render -> Paint (this is simplified)
+/// While the [`App`] follows a strict order of UI Events -> Render -> Paint (this is simplified)
 /// the [`AppTask`] can receive different requests at any time. This enum keeps track of the state
-/// the AppTask is in because of previous requests.
+/// the `AppTask` is in because of previous requests.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum UiState {
     /// Starting state, ready for events and render requests.
@@ -144,7 +146,7 @@ impl<T: Send + 'static, V: View<T> + 'static> App<T, V> {
         let event_tx_clone = event_tx.clone();
         std::thread::spawn(move || {
             loop {
-                if let Ok(true) = poll(Duration::from_millis(100)) {
+                if matches!(poll(Duration::from_millis(100)), Ok(true)) {
                     let event = match read() {
                         // TODO quit app at least for now, until proper key handling is implemented, then this thread might need a signal to quit itself
                         Ok(CxEvent::Key(KeyEvent {
@@ -216,6 +218,7 @@ impl<T: Send + 'static, V: View<T> + 'static> App<T, V> {
 
     /// Run the app logic and update the widget tree.
     #[tracing::instrument(skip(self))]
+    #[allow(clippy::unwrap_in_result)]
     fn render(&mut self) -> Result<()> {
         if self.build_widget_tree(false) {
             self.build_widget_tree(true);

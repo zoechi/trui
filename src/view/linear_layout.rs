@@ -1,8 +1,10 @@
-use super::{Cx, View, ViewMarker, ViewSequence};
-use crate::widget::{self, ChangeFlags};
 use std::{any::Any, marker::PhantomData};
+
 use taffy::style::FlexDirection;
 use xilem_core::{Id, VecSplice};
+
+use super::{Cx, View, ViewMarker, ViewSequence};
+use crate::widget::{self, ChangeFlags};
 
 pub struct LinearLayout<T, A, VT> {
     children: VT,

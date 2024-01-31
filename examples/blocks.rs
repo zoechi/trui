@@ -1,6 +1,6 @@
 use anyhow::Result;
 use ratatui::style::{Color, Style};
-use trui::*;
+use trui::{block, h_stack, s, v_stack, App, BorderKind, Borders, Styleable, ToWrappedText};
 
 // TODO layouting is not really optimal yet (needs to be configurable, a good abstraction on top of taffy likely)
 fn main() -> Result<()> {

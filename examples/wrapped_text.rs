@@ -1,6 +1,6 @@
 use anyhow::Result;
 use ratatui::style::Color;
-use trui::*;
+use trui::{block, h_stack, App, Styleable, ToWrappedText};
 
 fn main() -> Result<()> {
     App::new((), |()| {

@@ -33,7 +33,7 @@ impl LinearLayout {
 
 impl Widget for LinearLayout {
     fn paint(&mut self, cx: &mut PaintCx) {
-        for child in self.children.iter_mut() {
+        for child in &mut self.children {
             child.paint(cx, cx.rect());
         }
     }
@@ -44,13 +44,13 @@ impl Widget for LinearLayout {
             .iter_mut()
             .map(|child| child.layout(cx))
             .collect();
-        if !prev.is_null() {
-            update_layout_node(prev, cx.taffy, &children, &self.style);
-            prev
-        } else {
+        if prev.is_null() {
             cx.taffy
                 .new_with_children(self.style.clone(), &children)
                 .unwrap()
+        } else {
+            update_layout_node(prev, cx.taffy, &children, &self.style);
+            prev
         }
     }
 
