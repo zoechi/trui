@@ -2,9 +2,12 @@ use std::any::{type_name, Any, TypeId};
 use std::collections::HashMap;
 use std::fmt::{Debug, Display};
 
+use std::marker::PhantomData;
 use std::sync::Arc;
 
 use crate::widget::{Block, Widget};
+
+// TODO(zoechi): child, descendant, siblings selectors, mediaquery
 
 #[derive(Debug)]
 pub struct Styles {
@@ -38,6 +41,33 @@ impl Styles {
 
         styles
     }
+
+    pub fn find<T: Widget>(query: StyleQuery<T>) -> Option<StyleResult<T>> {
+        None
+    }
+}
+
+struct StyleQuery<T: Widget> {
+    id: Option<Arc<str>>,
+    classes: Vec<Arc<str>>,
+    attributes: Vec<Box<AttributeValue>>,
+    phantom: PhantomData<T>,
+}
+
+struct AttributeValue {
+    name: Arc<str>,
+    value: TypedValue,
+}
+
+enum TypedValue {
+    Bool(bool),
+    String(String),
+    Int(i64),
+    Float(f64),
+}
+
+struct StyleResult<T: Widget> {
+    phantom: PhantomData<T>,
 }
 
 impl Display for Styles {
@@ -46,14 +76,27 @@ impl Display for Styles {
     }
 }
 
-#[derive(Debug)]
+// #[derive(Debug)]
 pub struct StyleBase<T: Widget> {
     position: u16,
     selectivity: u8,
     // widget_type_id: TypeId,
     id: Option<Arc<str>>,
     classes: Vec<Arc<str>>,
-    attributes: Vec<Box<dyn Attribute<Widget = T>>>,
+    attributes: Vec<Box<dyn AnyAttribute>>,
+    phantom: PhantomData<T>,
+}
+
+impl<T: Widget> Debug for StyleBase<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct(&format!("StyleBase<{}>", type_name::<T>()))
+            .field("position", &self.position)
+            .field("selectivity", &self.selectivity)
+            .field("option", &self.id)
+            .field("classes", &self.classes)
+            .field("attributes", &self.attributes)
+            .finish()
+    }
 }
 
 impl<T: Widget> Display for StyleBase<T> {
@@ -99,7 +142,7 @@ pub trait AnyAttribute: Attribute<Widget = dyn Widget> + Display + Debug {
     // fn name(&self) -> Arc<str>;
 }
 
-impl<A: Attribute<Widget = dyn Widget>> AnyAttribute for A {
+impl<A: Attribute<Widget = dyn Widget> + 'static> AnyAttribute for A {
     fn as_any(&self) -> &dyn Any {
         self
     }
@@ -134,8 +177,8 @@ pub struct BlockStyle {
 impl BlockStyle {
     pub fn new(
         id: Option<Arc<str>>,
-        classes: Vec<Arc<str>>,
-        attributes: Vec<Box<dyn Attribute<Widget = Block>>>,
+        classes: impl Into<Vec<Arc<str>>>,
+        attributes: impl Into<Vec<Box<dyn AnyAttribute>>>,
     ) -> Self {
         Self {
             base: StyleBase::<Block> {
@@ -143,8 +186,9 @@ impl BlockStyle {
                 selectivity: 0,
                 // widget_type_id: TypeId::of::<Block>(),
                 id,
-                classes,
-                attributes,
+                classes: classes.into(),
+                attributes: attributes.into(),
+                phantom: PhantomData,
             },
         }
     }
@@ -244,6 +288,14 @@ mod tests {
 
     #[test]
     fn simple_test() {
-        let styles = Styles::new(BlockStyle::new());
+        let group = "group";
+        let styles = Styles::new(vec![Arc::new(BlockStyle::new(
+            None,
+            [Arc::from("group")],
+            [],
+        ))]);
+        dbg!(&styles);
+        println!("{styles}");
+        println!("{styles:?}");
     }
 }
