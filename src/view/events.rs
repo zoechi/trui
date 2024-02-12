@@ -1,8 +1,7 @@
-use super::{Cx, PendingTask, Styleable, View, ViewMarker};
+use super::{Cx, PendingTask, View, ViewMarker};
 use crate::widget::{self, CatchMouseButton, ChangeFlags};
 use futures_task::Waker;
 use futures_util::{Future, Stream, StreamExt};
-use ratatui::style::Style;
 use std::{marker::PhantomData, sync::Arc};
 use tokio::{runtime::Runtime, sync::mpsc::Receiver, task::JoinHandle};
 use xilem_core::{AsyncWake, Id, MessageResult};
@@ -458,174 +457,8 @@ where
         }
     }
 }
-macro_rules! styled_event_views {
-    ($($name:ident),*) => {
-        $(
-        pub struct $name<V> {
-            pub(crate) view: V,
-            pub(crate) style: Style,
-        }
 
-        impl<V> ViewMarker for $name<V> {}
-
-        impl<V: Styleable> Styleable for $name<V>
-        {
-            type Output = $name<V::Output>;
-
-            fn fg(self, color: ratatui::style::Color) -> Self::Output {
-                $name {
-                    view: self.view.fg(color),
-                    style: self.style,
-                }
-            }
-
-            fn bg(self, color: ratatui::style::Color) -> Self::Output {
-                $name {
-                    view: self.view.bg(color),
-                    style: self.style,
-                }
-            }
-
-            fn modifier(self, modifier: ratatui::style::Modifier) -> Self::Output {
-                $name {
-                    view: self.view.modifier(modifier),
-                    style: self.style,
-                }
-            }
-
-            fn style(self, style: ratatui::style::Style) -> Self::Output {
-                $name {
-                    view: self.view.style(style),
-                    style: self.style,
-                }
-            }
-
-            fn current_style(&self) -> Style {
-                self.view.current_style()
-            }
-        }
-        )*
-    }
-}
-
-// TODO is "invisible" (i.e. without id) a good idea?
-// it never should receive events (or other things) directly and is just a trait on top of any *actual* view?
-impl<T, A, VS, V> View<T, A> for StyleOnHover<V>
-where
-    VS: View<T, A>,
-    V: View<T, A> + Styleable<Output = VS>,
-{
-    type State = V::State;
-
-    type Element = widget::StyleOnHover;
-
-    fn build(&self, cx: &mut Cx) -> (xilem_core::Id, Self::State, Self::Element) {
-        let (id, state, element) = self.view.build(cx);
-
-        (id, state, widget::StyleOnHover::new(element, self.style))
-    }
-
-    fn rebuild(
-        &self,
-        cx: &mut Cx,
-        prev: &Self,
-        id: &mut xilem_core::Id,
-        state: &mut Self::State,
-        element: &mut Self::Element,
-    ) -> ChangeFlags {
-        let mut changeflags = ChangeFlags::empty();
-        if element.style != self.style {
-            element.style = self.style;
-            changeflags |= ChangeFlags::PAINT;
-        }
-        changeflags |= self.view.rebuild(
-            cx,
-            &prev.view,
-            id,
-            state,
-            element.element.downcast_mut().unwrap(),
-        );
-        changeflags
-    }
-
-    fn message(
-        &self,
-        id_path: &[xilem_core::Id],
-        state: &mut Self::State,
-        message: Box<dyn std::any::Any>,
-        app_state: &mut T,
-    ) -> xilem_core::MessageResult<A> {
-        self.view.message(id_path, state, message, app_state)
-    }
-}
-
-impl<T, A, VS, V> View<T, A> for StyleOnPressed<V>
-where
-    VS: View<T, A>,
-    V: View<T, A> + Styleable<Output = VS>,
-{
-    type State = (V::State, Id);
-
-    type Element = widget::StyleOnPressed;
-
-    fn build(&self, cx: &mut Cx) -> (xilem_core::Id, Self::State, Self::Element) {
-        let (id, (state, element)) = cx.with_new_id(|cx| {
-            let (child_id, state, element) = self.view.build(cx);
-
-            (
-                (state, child_id),
-                widget::StyleOnPressed::new(element, self.style),
-            )
-        });
-        (id, state, element)
-    }
-
-    fn rebuild(
-        &self,
-        cx: &mut Cx,
-        prev: &Self,
-        id: &mut xilem_core::Id,
-        (state, child_id): &mut Self::State,
-        element: &mut Self::Element,
-    ) -> ChangeFlags {
-        let mut changeflags = ChangeFlags::empty();
-        if element.style != self.style {
-            element.style = self.style;
-            changeflags |= ChangeFlags::PAINT;
-        }
-        changeflags |= cx.with_id(*id, |cx| {
-            self.view.rebuild(
-                cx,
-                &prev.view,
-                child_id,
-                state,
-                element.element.downcast_mut().expect(
-                    "The style on pressed content widget changed its type, this should never happen!",
-                ),
-            )
-        });
-        changeflags
-    }
-
-    fn message(
-        &self,
-        id_path: &[xilem_core::Id],
-        (state, child_id): &mut Self::State,
-        message: Box<dyn std::any::Any>,
-        app_state: &mut T,
-    ) -> xilem_core::MessageResult<A> {
-        match id_path.split_first() {
-            Some((first, rest_path)) if first == child_id => {
-                self.view.message(rest_path, state, message, app_state)
-            }
-            _ => xilem_core::MessageResult::Stale(message),
-        }
-    }
-}
-
-styled_event_views!(StyleOnHover, StyleOnPressed);
-
-// TODO own state (id_path etc.)
+// // TODO own state (id_path etc.)
 macro_rules! event_views {
     ($($name:ident),*) => {
         $(
@@ -696,51 +529,13 @@ macro_rules! event_views {
                     [..] => xilem_core::MessageResult::Stale(message),
                 }
             }
-        }
-
-        impl<V: Styleable, EH> Styleable for $name<V, EH>
-        {
-            type Output = $name<<V as Styleable>::Output, EH>;
-
-            fn fg(self, color: ratatui::style::Color) -> Self::Output {
-                $name {
-                    view: self.view.fg(color),
-                    event_handler: self.event_handler,
-                }
-            }
-
-            fn bg(self, color: ratatui::style::Color) -> Self::Output {
-                $name {
-                    view: self.view.bg(color),
-                    event_handler: self.event_handler,
-                }
-            }
-
-            fn modifier(self, modifier: ratatui::style::Modifier) -> Self::Output {
-                $name {
-                    view: self.view.modifier(modifier),
-                    event_handler: self.event_handler,
-                }
-            }
-
-            fn style(self, style: ratatui::style::Style) -> Self::Output {
-                $name {
-                    view: self.view.style(style),
-                    event_handler: self.event_handler,
-                }
-            }
-
-            fn current_style(&self) -> Style {
-                self.view.current_style()
-            }
-        }
-        )*
+        }        )*
     };
 }
 
 event_views!(OnHover, OnHoverLost);
 
-// TODO this should probably be generated by the macro above (but for better IDE experience and easier prototyping this not yet)
+// // TODO this should probably be generated by the macro above (but for better IDE experience and easier prototyping this not yet)
 pub struct OnClick<V, EH> {
     pub(crate) view: V,
     pub(crate) event_handler: EH,
@@ -814,41 +609,5 @@ where
                 .message(&[], event_handler_state, message, app_state),
             [..] => xilem_core::MessageResult::Stale(message),
         }
-    }
-}
-
-impl<V: Styleable, EH> Styleable for OnClick<V, EH> {
-    type Output = OnClick<<V as Styleable>::Output, EH>;
-
-    fn fg(self, color: ratatui::style::Color) -> Self::Output {
-        OnClick {
-            view: self.view.fg(color),
-            event_handler: self.event_handler,
-        }
-    }
-
-    fn bg(self, color: ratatui::style::Color) -> Self::Output {
-        OnClick {
-            view: self.view.bg(color),
-            event_handler: self.event_handler,
-        }
-    }
-
-    fn modifier(self, modifier: ratatui::style::Modifier) -> Self::Output {
-        OnClick {
-            view: self.view.modifier(modifier),
-            event_handler: self.event_handler,
-        }
-    }
-
-    fn style(self, style: ratatui::style::Style) -> Self::Output {
-        OnClick {
-            view: self.view.style(style),
-            event_handler: self.event_handler,
-        }
-    }
-
-    fn current_style(&self) -> Style {
-        self.view.current_style()
     }
 }

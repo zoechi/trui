@@ -3,7 +3,6 @@ use std::marker::PhantomData;
 
 use crate::geometry::{Point, Size};
 use crossterm::event::{MouseButton, MouseEventKind};
-use ratatui::style::Style;
 
 use super::{
     core::{IdPath, PaintCx},
@@ -330,104 +329,6 @@ impl Widget for OnHoverLost {
                 self.is_hovering = false;
                 cx.add_message(Message::new(self.id_path.clone(), ()));
             }
-        }
-    }
-
-    fn lifecycle(&mut self, cx: &mut super::core::LifeCycleCx, event: &LifeCycle) {
-        self.element.lifecycle(cx, event);
-    }
-}
-
-pub struct StyleOnHover {
-    pub element: Pod,
-    is_hovering: bool,
-    pub(crate) style: Style,
-}
-
-impl StyleOnHover {
-    pub fn new<E: Widget>(element: E, style: Style) -> Self {
-        StyleOnHover {
-            element: Pod::new(element),
-            style,
-            is_hovering: false,
-        }
-    }
-}
-
-impl Widget for StyleOnHover {
-    fn paint(&mut self, cx: &mut PaintCx) {
-        if cx.is_hot() {
-            cx.override_style = self.style.patch(cx.override_style);
-        };
-        self.element.paint(cx);
-    }
-
-    fn layout(&mut self, cx: &mut LayoutCx, bc: &super::BoxConstraints) -> Size {
-        self.element.layout(cx, bc)
-    }
-
-    fn event(&mut self, cx: &mut EventCx, event: &Event) {
-        self.element.event(cx, event);
-        if cx.is_hot() && !self.is_hovering {
-            cx.request_paint();
-            self.is_hovering = true;
-        } else if !cx.is_hot() && self.is_hovering {
-            cx.request_paint();
-            self.is_hovering = false;
-        }
-    }
-
-    fn lifecycle(&mut self, cx: &mut super::core::LifeCycleCx, event: &LifeCycle) {
-        self.element.lifecycle(cx, event);
-    }
-}
-
-pub struct StyleOnPressed {
-    pub(crate) element: Pod,
-    pub(crate) style: Style,
-}
-
-impl StyleOnPressed {
-    pub fn new<E: Widget>(element: E, style: Style) -> Self {
-        StyleOnPressed {
-            element: Pod::new(element),
-            style,
-        }
-    }
-}
-
-impl Widget for StyleOnPressed {
-    fn paint(&mut self, cx: &mut PaintCx) {
-        if cx.is_active() {
-            cx.override_style = self.style.patch(cx.override_style);
-        };
-        self.element.paint(cx);
-    }
-
-    fn layout(&mut self, cx: &mut LayoutCx, bc: &super::BoxConstraints) -> Size {
-        self.element.layout(cx, bc)
-    }
-
-    fn event(&mut self, cx: &mut EventCx, event: &Event) {
-        self.element.event(cx, event);
-
-        match event {
-            Event::Mouse(RawMouseEvent {
-                kind: MouseEventKind::Down(MouseButton::Left),
-                ..
-            }) => {
-                cx.request_paint();
-                cx.set_active(cx.is_hot());
-            }
-            Event::Mouse(RawMouseEvent {
-                kind: MouseEventKind::Up(MouseButton::Left) | MouseEventKind::Moved,
-                ..
-            })
-            | Event::FocusLost => {
-                cx.request_paint();
-                cx.set_active(false);
-            }
-            _ => (),
         }
     }
 

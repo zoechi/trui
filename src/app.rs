@@ -5,6 +5,7 @@ use crate::{
         BoxConstraints, CxState, Event, EventCx, LayoutCx, LifeCycle, LifeCycleCx, Message,
         PaintCx, Pod, PodFlags, ViewContext, WidgetState,
     },
+    Theme,
 };
 use anyhow::Result;
 
@@ -76,6 +77,7 @@ pub struct App<T: Send + 'static, V: View<T> + 'static> {
     root_pod: Option<Pod>,
     cx: Cx,
     id: Option<Id>,
+    theme: Theme,
 }
 
 /// The standard delay for waiting for async futures.
@@ -235,6 +237,7 @@ impl<T: Send + 'static, V: View<T> + 'static> App<T, V> {
             cx,
             id: None,
             root_state: WidgetState::new(),
+            theme: Theme::default(),
             events: Vec::new(),
         }
     }
@@ -279,6 +282,7 @@ impl<T: Send + 'static, V: View<T> + 'static> App<T, V> {
             let mut layout_cx = LayoutCx {
                 widget_state: &mut self.root_state,
                 cx_state,
+                theme: &self.theme,
             };
             let bc = BoxConstraints::tight(self.size);
             root_pod.layout(&mut layout_cx, &bc);
@@ -310,7 +314,7 @@ impl<T: Send + 'static, V: View<T> + 'static> App<T, V> {
                 widget_state: &mut self.root_state,
                 cx_state,
                 terminal: &mut self.terminal,
-                override_style: ratatui::style::Style::default(),
+                // TODO(zoechi): override_style: ratatui::style::Style::default(),
             };
 
             root_pod.paint(&mut paint_cx);

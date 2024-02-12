@@ -4,7 +4,7 @@ use super::{
 use crate::{
     geometry::{to_ratatui_rect, Point, Size},
     view::Borders,
-    BorderKind,
+    BorderKind, BorderStyles,
 };
 use ratatui::{style::Style, symbols};
 
@@ -13,6 +13,7 @@ pub struct Border {
     borders: Borders,
     kind: BorderKind,
     style: Style,
+    effective_styles: BorderStyles,
 }
 
 impl Border {
@@ -27,6 +28,7 @@ impl Border {
             borders,
             kind,
             style,
+            effective_styles: BorderStyles::default(),
         }
     }
 
@@ -60,8 +62,10 @@ impl Border {
     }
 
     fn render_border(&self, cx: &mut PaintCx) {
-        let style = self.style.patch(cx.override_style);
-        cx.override_style = Style::default();
+        // TODO(zoechi): apply states like hover, ...
+        let border_style = self.effective_styles.default;
+        // let style = self.style.patch(cx.override_style);
+        // cx.override_style = Style::default();
         let r = to_ratatui_rect(cx.rect());
 
         use Borders as B; // unfortunately not possible to wildcard import since it's not an enum...
@@ -97,12 +101,17 @@ impl Border {
             };
             if self.borders.contains(B::TOP) {
                 for x in start..end {
-                    draw(x, r.y, self.kind.symbols().horizontal, style);
+                    draw(x, r.y, self.kind.symbols().horizontal, border_style.style);
                 }
             }
             if self.borders.contains(B::BOTTOM) {
                 for x in start..end {
-                    draw(x, r.y + r.height - 1, self.kind.symbols().horizontal, style);
+                    draw(
+                        x,
+                        r.y + r.height - 1,
+                        self.kind.symbols().horizontal,
+                        border_style.style,
+                    );
                 }
             }
         }
@@ -119,31 +128,41 @@ impl Border {
             };
             if self.borders.contains(B::LEFT) {
                 for y in start..end {
-                    draw(r.x, y, self.kind.symbols().vertical, style);
+                    draw(r.x, y, self.kind.symbols().vertical, border_style.style);
                 }
             }
             if self.borders.contains(B::RIGHT) {
                 for y in start..end {
-                    draw(r.x + r.width - 1, y, self.kind.symbols().vertical, style);
+                    draw(
+                        r.x + r.width - 1,
+                        y,
+                        self.kind.symbols().vertical,
+                        border_style.style,
+                    );
                 }
             }
         }
 
         // corners
         if self.borders.contains(B::TOP_LEFT_CORNER) {
-            draw(r.x, r.y, self.kind.symbols().top_left, style);
+            draw(r.x, r.y, self.kind.symbols().top_left, border_style.style);
         }
         if self.borders.contains(B::BOTTOM_LEFT_CORNER) {
             let symbol = self.kind.symbols().bottom_left;
-            draw(r.x, r.y + r.height - 1, symbol, style);
+            draw(r.x, r.y + r.height - 1, symbol, border_style.style);
         }
         if self.borders.contains(B::BOTTOM_RIGHT_CORNER) {
             let symbol = self.kind.symbols().bottom_right;
-            draw(r.x + r.width - 1, r.y + r.height - 1, symbol, style);
+            draw(
+                r.x + r.width - 1,
+                r.y + r.height - 1,
+                symbol,
+                border_style.style,
+            );
         }
         if self.borders.contains(B::TOP_RIGHT_CORNER) {
             let symbol = self.kind.symbols().top_right;
-            draw(r.x + r.width - 1, r.y, symbol, style);
+            draw(r.x + r.width - 1, r.y, symbol, border_style.style);
         }
     }
 }
@@ -159,6 +178,9 @@ impl Widget for Border {
     }
 
     fn layout(&mut self, cx: &mut LayoutCx, bc: &BoxConstraints) -> Size {
+        self.effective_styles = cx.theme.border_styles.clone();
+        self.effective_styles.default.style = self.effective_styles.default.style.patch(self.style);
+
         let pad = |borders| {
             if self.borders.intersects(borders) {
                 1.0

@@ -1,5 +1,6 @@
 use super::{BoxConstraints, Event, LifeCycle};
 use crate::geometry::{Point, Rect, Size};
+use crate::Theme;
 use bitflags::bitflags;
 use crossterm::event::MouseEventKind;
 use ratatui::Terminal;
@@ -45,9 +46,11 @@ pub struct LifeCycleCx<'a, 'b> {
     pub(crate) widget_state: &'a mut WidgetState,
 }
 
+// TODO(zoechi): The fields are crate-private. What about 3rd-party widgets?
 pub struct LayoutCx<'a, 'b> {
     pub(crate) cx_state: &'a mut CxState<'b>,
     pub(crate) widget_state: &'a mut WidgetState,
+    pub(crate) theme: &'a Theme,
 }
 
 pub struct PaintCx<'a, 'b> {
@@ -60,9 +63,6 @@ pub struct PaintCx<'a, 'b> {
 
     #[cfg(not(test))]
     pub(crate) terminal: &'a mut Terminal<CrosstermBackend<Stdout>>,
-    // TODO this kinda feels hacky, find a better solution for this issue:
-    // this is currently necessary because the most outer styleable widget should be able to override the style for a styleable widget
-    pub(crate) override_style: ratatui::style::Style,
 }
 
 /// A macro for implementing methods on multiple contexts.
@@ -366,6 +366,7 @@ impl Pod {
         let mut child_cx = LayoutCx {
             cx_state: cx.cx_state,
             widget_state: &mut self.state,
+            theme: cx.theme,
         };
         let new_size = self.widget.layout(&mut child_cx, bc);
         if new_size != self.state.size {
@@ -386,7 +387,6 @@ impl Pod {
             cx_state: cx.cx_state,
             widget_state: &mut self.state,
             terminal: cx.terminal,
-            override_style: cx.override_style,
         };
         self.widget.paint(inner_cx);
 

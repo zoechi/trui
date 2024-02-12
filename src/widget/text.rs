@@ -4,12 +4,14 @@ use ratatui::style::Style;
 use unicode_width::UnicodeWidthStr;
 
 use crate::geometry::{to_ratatui_rect, Size};
+use crate::TextStyles;
 
 use super::{core::EventCx, BoxConstraints, ChangeFlags, Event, LayoutCx, PaintCx, Widget};
 
 pub struct Text {
     pub(crate) text: Cow<'static, str>,
     pub(crate) style: Style,
+    pub(crate) effective_styles: TextStyles,
 }
 
 // TODO maybe a generic macro for stuff like below?
@@ -37,23 +39,28 @@ impl Widget for Text {
     fn paint(&mut self, cx: &mut PaintCx) {
         let rect = to_ratatui_rect(cx.rect());
 
-        let style = self.style.patch(cx.override_style);
-
         let term_size = cx.terminal.size().unwrap();
 
         let max_width = rect.width.min(term_size.width.saturating_sub(rect.x)) as usize;
         if rect.height > 0 && max_width > 0 && rect.y < term_size.height {
             // TODO cut the text off, when it is out of bounds (rect.height is not respected)
             // likely with a custom implementation to render the text, instead of `set_stringn`
-            cx.terminal
-                .current_buffer_mut()
-                .set_stringn(rect.x, rect.y, &self.text, max_width, style);
+            cx.terminal.current_buffer_mut().set_stringn(
+                rect.x,
+                rect.y,
+                &self.text,
+                max_width,
+                self.effective_styles.default,
+            );
         }
     }
 
-    fn layout(&mut self, _cx: &mut LayoutCx, bc: &BoxConstraints) -> Size {
+    fn layout(&mut self, cx: &mut LayoutCx, bc: &BoxConstraints) -> Size {
         let mut width = 0;
         let mut height = 0;
+
+        self.effective_styles = cx.theme.text_styles.clone();
+        self.effective_styles.default = self.effective_styles.default.patch(self.style);
 
         for l in self.text.lines() {
             width = width.max(l.width());

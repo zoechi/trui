@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use super::{common::Styleable, Cx, View, ViewMarker};
 use crate::widget::{self, ChangeFlags};
+use crate::TextStyles;
 use ratatui::style::{Color, Modifier, Style};
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -50,6 +51,7 @@ impl<T, A, S: Into<Text> + Clone + Send + Sync + Eq> View<T, A> for S {
         let (id, element) = cx.with_new_id(|_| widget::Text {
             text: text.text,
             style: text.style,
+            effective_styles: TextStyles::default(),
         });
         (id, (), element)
     }

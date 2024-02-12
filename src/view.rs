@@ -6,13 +6,13 @@ mod events;
 mod fill_max_size;
 mod linear_layout;
 mod margin;
+mod style;
 mod text;
 mod use_state;
 mod weighted_linear_layout;
 
 use std::marker::PhantomData;
 
-use ratatui::style::{Color, Style};
 pub use xilem_core::{Id, IdPath, VecSplice};
 
 // TODO do this via a prelude instead (and possibly not wildcard export)
@@ -24,6 +24,7 @@ pub use events::*;
 pub use fill_max_size::*;
 pub use linear_layout::*;
 pub use margin::*;
+pub use style::*;
 pub use text::*;
 pub use use_state::*;
 pub use weighted_linear_layout::*;
@@ -134,54 +135,6 @@ pub trait ViewExt<T, A>: View<T, A> + Sized {
             view: self,
             event_handler,
         }
-    }
-
-    fn on_hover_style<VS>(self, style: Style) -> StyleOnHover<Self>
-    where
-        VS: View<T, A>,
-        Self: Styleable<Output = VS>,
-    {
-        StyleOnHover { view: self, style }
-    }
-
-    fn on_hover_fg<VS>(self, color: Color) -> StyleOnHover<Self>
-    where
-        VS: View<T, A>,
-        Self: Styleable<Output = VS>,
-    {
-        self.on_hover_style(Style::default().fg(color))
-    }
-
-    fn on_hover_bg<VS>(self, color: Color) -> StyleOnHover<Self>
-    where
-        VS: View<T, A>,
-        Self: Styleable<Output = VS>,
-    {
-        self.on_hover_style(Style::default().bg(color))
-    }
-
-    fn on_pressed_style<VS>(self, style: Style) -> StyleOnPressed<Self>
-    where
-        VS: View<T, A>,
-        Self: Styleable<Output = VS>,
-    {
-        StyleOnPressed { view: self, style }
-    }
-
-    fn on_pressed_fg<VS>(self, color: Color) -> StyleOnPressed<Self>
-    where
-        VS: View<T, A>,
-        Self: Styleable<Output = VS>,
-    {
-        self.on_pressed_style(Style::default().fg(color))
-    }
-
-    fn on_pressed_bg<VS>(self, color: Color) -> StyleOnPressed<Self>
-    where
-        VS: View<T, A>,
-        Self: Styleable<Output = VS>,
-    {
-        self.on_pressed_style(Style::default().bg(color))
     }
 }
 
