@@ -2,8 +2,10 @@ use std::time::Duration;
 
 use anyhow::Result;
 use ratatui::style::{Color, Style};
-use trui::logging::setup_logging;
 use trui::*;
+
+#[path = "./shared/logging.rs"]
+mod logging;
 
 pub fn button<T>(
     content: impl View<T>,
@@ -21,8 +23,10 @@ struct AppState {
     selected_tab: usize,
 }
 
-fn main() -> Result<()> {
-    let _ = setup_logging(tracing::Level::DEBUG)?;
+#[tokio::main]
+async fn main() -> Result<()> {
+    let _guard = crate::logging::setup_logging(tracing::Level::DEBUG)?;
+    tracing::debug!("app start");
 
     App::new(
         AppState {
@@ -103,5 +107,7 @@ fn main() -> Result<()> {
             ))
         },
     )
+    .await
     .run()
+    .await
 }
